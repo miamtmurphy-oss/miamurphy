@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Escape the Audio Maze</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<a class="skip" href="#app">Skip to game</a>
+
+<header>
+  <h1>Escape the Audio Maze</h1>
+  <p class="tagline">An audio-first maze. Listen, remember, escape before the timer runs out.</p>
+</header>
+
+<main>
+  <!-- ===================== MENU ===================== -->
+  <section id="menu" aria-labelledby="menu-h">
+    <h2 id="menu-h">Start a run</h2>
+
+    <form id="setup">
+      <fieldset>
+        <legend>Difficulty</legend>
+        <div class="radios">
+          <label><input type="radio" name="difficulty" value="explorer" checked> Explorer — more guidance, longer timer, fewer dangers</label>
+          <label><input type="radio" name="difficulty" value="adventurer"> Adventurer — less guidance, bigger maze, a stalker</label>
+          <label><input type="radio" name="difficulty" value="master"> Audio Master — minimal hints, hazards, fast pace</label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Announcements</legend>
+        <p class="hint" id="ann-hint">Choose how game messages reach you. Use the test button below to check your choice works before you start.</p>
+        <div class="radios" role="group" aria-describedby="ann-hint">
+          <label><input type="radio" name="narration" value="live" checked> Screen reader only — silent unless a screen reader is running (default)</label>
+          <label><input type="radio" name="narration" value="speech"> Built-in speech only — pick this if you are not using a screen reader</label>
+          <label><input type="radio" name="narration" value="both"> Both</label>
+          <label><input type="radio" name="narration" value="off"> Off — transcript text only</label>
+        </div>
+        <p><button type="button" id="test-btn">Test announcement</button></p>
+        <p class="hint" id="test-result"></p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Audio and speech</legend>
+        <p>
+          <label for="volume">Sound effects volume</label>
+          <input type="range" id="volume" min="0" max="100" value="75" step="5">
+          <output for="volume" id="volume-out">75%</output>
+        </p>
+        <p>
+          <label for="rate">Built-in speech rate</label>
+          <input type="range" id="rate" min="0.5" max="3" value="1.6" step="0.1">
+          <output for="rate" id="rate-out">1.6&#215;</output>
+        </p>
+        <p>
+          <label for="showmap"><input type="checkbox" id="showmap"> Show visual map (for sighted companions; not needed to play)</label>
+        </p>
+      </fieldset>
+
+      <p class="actions">
+        <button type="submit" id="start-btn">Start game</button>
+        <button type="button" id="how-btn">How to play</button>
+      </p>
+    </form>
+
+    <section aria-labelledby="records-h">
+      <h3 id="records-h">Your records</h3>
+      <ul id="records"></ul>
+    </section>
+  </section>
+
+  <!-- ===================== GAME ===================== -->
+  <section id="game" hidden aria-labelledby="game-h">
+    <h2 id="game-h" class="sr-only">Maze run</h2>
+
+    <div id="app" role="application" tabindex="0"
+         aria-label="Audio maze. Arrow keys move and turn. Enter interacts. Press H for help.">
+      <p id="app-headline">Listening&#8230;</p>
+    </div>
+
+    <section aria-labelledby="status-h" id="status-panel">
+      <h3 id="status-h">Status</h3>
+      <dl id="status">
+        <div><dt>Time left</dt><dd id="s-time">&#8211;</dd></div>
+        <div><dt>Score</dt><dd id="s-score">0</dd></div>
+        <div><dt>Lives</dt><dd id="s-lives">&#8211;</dd></div>
+        <div><dt>Keys</dt><dd id="s-keys">0</dd></div>
+        <div><dt>Facing</dt><dd id="s-facing">North</dd></div>
+        <div><dt>Level</dt><dd id="s-level">1</dd></div>
+      </dl>
+      <p class="hint">Press S during play to hear this status. It is not announced automatically.</p>
+    </section>
+
+    <section aria-labelledby="keys-h" id="keys-panel">
+      <h3 id="keys-h">Keyboard controls</h3>
+      <ul id="keys-list"></ul>
+      <p class="hint">Press <kbd>H</kbd> at any time to hear these.</p>
+    </section>
+
+    <section aria-labelledby="log-h" id="log-panel">
+      <h3 id="log-h">Transcript</h3>
+      <p class="hint">Text equivalent of every sound and message, newest first.</p>
+      <ol id="log" reversed></ol>
+    </section>
+
+    <section aria-labelledby="map-h" id="map-panel" hidden>
+      <h3 id="map-h">Visual map</h3>
+      <pre id="map" aria-hidden="true"></pre>
+      <p class="hint">Decorative only. Everything shown here is available as sound and text.</p>
+    </section>
+  </section>
+</main>
+
+<!-- Live regions: the only things that speak automatically in screen reader mode. -->
+<p id="live-polite" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
+<p id="live-assertive" class="sr-only" role="alert" aria-live="assertive" aria-atomic="true"></p>
+
+<dialog id="over-dialog" aria-labelledby="over-h">
+  <h2 id="over-h">Run over</h2>
+  <p id="over-body"></p>
+  <ul id="over-stats"></ul>
+  <p class="actions">
+    <button type="button" id="again-btn">Play again</button>
+    <button type="button" id="next-btn" hidden>Next level</button>
+    <button type="button" id="menu-btn">Back to menu</button>
+  </p>
+</dialog>
+
+<dialog id="how-dialog" aria-labelledby="how-h">
+  <h2 id="how-h">How to play</h2>
+  <p>You wake up inside a maze. Find the keys, reach the exit door, and escape before the timer hits zero.</p>
+  <h3 id="controls-h">Keyboard controls</h3>
+  <ul id="controls-list">
+    <li><kbd>Up Arrow</kbd> — move forward</li>
+    <li><kbd>Down Arrow</kbd> — move backward</li>
+    <li><kbd>Left Arrow</kbd> / <kbd>Right Arrow</kbd> — turn</li>
+    <li><kbd>Enter</kbd> — interact: take keys and bonuses, flip switches, open doors, disarm a trap ahead, use the exit</li>
+    <li><kbd>L</kbd> — listen: full description of this spot</li>
+    <li><kbd>S</kbd> — status: time, score, lives, keys</li>
+    <li><kbd>R</kbd> — repeat the most recent important clue</li>
+    <li><kbd>H</kbd> — help</li>
+    <li><kbd>M</kbd> — toggle built-in speech narration</li>
+    <li><kbd>Escape</kbd> — pause or resume</li>
+  </ul>
+  <h3>Listening</h3>
+  <ul>
+    <li>Sounds are positioned left, right, ahead or behind you, following the open path — not through walls.</li>
+    <li>Sounds behind you are muffled and quieter.</li>
+    <li>Every sound also has short text, so headphones help but are never required.</li>
+    <li>At the start you get a clue about what the exit sounds like. Press <kbd>R</kbd> to hear it again.</li>
+  </ul>
+  <h3>Things you will meet</h3>
+  <ul>
+    <li><strong>Keys</strong> jingle. You need them to open the exit.</li>
+    <li><strong>Locked doors</strong> rattle. A switch somewhere powers them.</li>
+    <li><strong>Switches</strong> hum, and may open a hidden passage.</li>
+    <li><strong>Traps</strong> hiss faintly when you are next to them. Stepping on one costs a life and ten seconds. Work out which direction the hiss is coming from, turn to face it, and press <kbd>Enter</kbd> to disarm it for points.</li>
+    <li><strong>Bonus items</strong> chime and raise your score.</li>
+    <li>On harder levels something <strong>follows you</strong>. Listen for footsteps.</li>
+  </ul>
+  <p class="actions"><button type="button" id="how-close">Close</button></p>
+</dialog>
+
+<script src="audio.js"></script>
+<script src="maze.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
